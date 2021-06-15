@@ -1,0 +1,73 @@
+#ubuntu 18.04
+#DAMASK-2.0.2
+#install cmake
+sudo mkdir /opt/cmake
+#Manually download "cmake-3.20.0-rc4-linux-x86_64.sh" file to the "Downloads" directory from this site: https://cmake.org/download/.
+Run the following command to copy the file to newly created cmake directory:
+sudo cp ~/Downloads/cmake-3.20.0-rc4-Linux-x86_64.sh /opt/cmake/
+
+#Now run the following command to install 'cmake':
+cd /opt/cmake
+sudo sh cmake-3.20.0-rc3-linux-x86_64.sh --prefix=/opt/cmake --skip-license
+#In order to import current version of cmake with 'cmake' command, we will use symbolic link. Type:
+cd ~
+sudo ln -s /opt/cmake/bin/cmake /usr/local/bin/cmake
+Check cmake Installation:
+cmake --version
+
+# MPI is not installed so
+1.sudo add-apt-repository ppa:nschloe/petsc-backports
+2.sudo apt-get install gfortran g++ gcc
+
+#install prerequisite
+3. May need installing python-pip for the next three steps
+4.pip2 install vtk
+5.pip2 install scipy # includes numpy 
+6.pip2 install h5py
+
+#get DAMASK
+7. Download DAMASK-2.0.2 from github to the downloads folder
+8. copy it to home directory from Downloads:sudo cp ~/Downloads/DAMASK-2.0.2.tar.xz ~/
+9. Unzip: tar -xJvf DAMASK-2.0.3.tar.xz
+
+
+#get petsc
+10. Come to home directory: cd 
+11. get petsc: wget http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-3.9.4.tar.gz
+12. Extract: tar -xzvf petsc-3.9.4.tar.gz
+
+13. copy build-DAMASK to home: sudo cp ~/Downloads/build-DAMASK.sh ~/
+14. bash build-DAMASK.sh
+#if there is this error message: "could not find mpi library for --enable-mpi" use following steps, and repeat step 14.
+	sudo apt-get update -y
+	sudo apt-get install -y mpich
+
+# change library path
+15. Open /etc/ld.so.conf.d/x86_64-linux-gnu.conf: 
+	cd /etc/ld.so.conf.d
+	sudo nano x86_64-linux-gnu.conf
+16. add at bottom: /home/yl/petsc-3.9.4/linux-gnu-intel/lib
+		#ctrl+o to write the file
+		#ctrl+x to close x86_64-linux-gnu.conf
+
+17. Add the following to .bashrc. If not, you have to execute sh every time you run.
+	open bashrc: sudo nano ~/.bashrc
+	add at bottom: source /home/yl/DAMASK/DAMASK_env.sh
+
+18. make processing under DAMASK
+cd DAMASK
+make processing
+
+#CADES is not able to install prerequisite like scipy, numpy, h5py due to python3.8 issue.
+#-------------------------------------------------------------------------------------------------------------------------
+# https://www.youtube.com/watch?v=sE2qq_LTglk
+1. seeds_fromRandom -N 20 --grid 64 64 1 >20grains.seeds
+2. geom_fromVoronoiTessellation --grid 64 64 1 20grains.seeds
+3. geom_check 20grains.geom
+4. copy the files of material.config & tension.load
+5. DAMASK_spectral --geometry 20grains.geom --load tension.load
+6. postResults 20grains_tension.spectralOut --cr f,p
+7. postResults 20grains_tension.spectralOut --cr f,p,orientation --separation x,y,z --increments --range 400 400 1 --split
+8. cd postProc
+9. vtk_rectilinearGrid 20grains_tension_inc400.txt
+10. vtk_addRectilinearGridData --data f,p --vtk 20grains_tension_inc400_pos\(cell\).vtr 20grains_tension_inc400.txt
